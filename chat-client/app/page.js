@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Chat from "../components/chat";
+import Chat from "./components/chat";
 import axios from "axios";
 import { useRouter } from "next/navigation";
 
@@ -15,7 +15,7 @@ export default function Home() {
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
-      setUser(savedUser);
+      setUser(savedUser.username);
     }
   }, []);
 
@@ -25,9 +25,11 @@ export default function Home() {
         username,
         password,
       });
-      localStorage.setItem("user", res.data.username);
-      setUser(res.data.username);
-      // router.push("/chat");
+
+      localStorage.setItem("user", res.data.user.username);
+      localStorage.setItem("accessToken", res.data.accessToken);
+
+      setUser(res.data.user.username);
     } catch (err) {
       setError("Đăng nhập thất bại! Kiểm tra lại tài khoản và mật khẩu.");
     }
@@ -51,12 +53,21 @@ export default function Home() {
           onChange={(e) => setPassword(e.target.value)}
           className="border p-2 m-2"
         />
-        <button onClick={handleLogin} className="bg-blue-500 text-white p-2 rounded">
+        <button
+          onClick={handleLogin}
+          className="bg-blue-500 text-white p-2 rounded"
+        >
           Đăng nhập
         </button>
+        <p className="mt-2">
+          Chưa có tài khoản?{" "}
+          <a href="/register" className="text-blue-500">
+            Đăng ký
+          </a>
+        </p>
       </div>
     );
   }
 
-  return <Chat user={user}/>;
+  return <Chat user={user} />;
 }
