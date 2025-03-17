@@ -58,7 +58,7 @@ const login = async (req, res) => {
       httpOnly: true,
     });
 
-    res.json({ accessToken, refreshToken });
+    res.json({user, accessToken, refreshToken });
   } catch (error) {
     res.status(500).json({ error: "Lỗi server" });
   }
