@@ -10,13 +10,17 @@ export default function Home() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");
     if (savedUser) {
-      setUser(savedUser.username);
+      setUser(savedUser);
+    } else {
+      setUser(null); 
     }
+    setLoading(false);
   }, []);
 
   const handleLogin = async () => {
@@ -34,6 +38,9 @@ export default function Home() {
       setError("Đăng nhập thất bại! Kiểm tra lại tài khoản và mật khẩu.");
     }
   };
+  if (loading) {
+    return <div>Đang tải...</div>;
+  }
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen">

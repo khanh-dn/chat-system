@@ -8,6 +8,6 @@ router.post("/login", login);
 
 router.post("/logout",authenticate ,logout);
 
-router.post("/refresh_token",authenticate ,refreshToken);
+router.post("/refresh_token" ,refreshToken);
 
 module.exports = router;

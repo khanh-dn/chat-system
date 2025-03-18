@@ -19,10 +19,10 @@ app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
 
-const client = redis.createClient(6379);
-client.on("connect", () => {
-});
-client.connect();
+// const client = redis.createClient(6379);
+// client.on("connect", () => {
+// });
+// client.connect();
 
 app.use("/auth", authRouter);
 

@@ -1,6 +1,6 @@
 const pool = require("../db");
 
-const createUser = async (username, password) => {
+const createUser = async (username, password, phone, address, email) => {
   try {
     const existingUser = await findByUsername(username);
 
@@ -9,8 +9,8 @@ const createUser = async (username, password) => {
     }
 
     const user = await pool.query(
-      "INSERT INTO users (username, password) VALUES ($1, $2) RETURNING *",
-      [username, password]
+      "INSERT INTO users (username, password, phone, address, email) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+      [username, password, phone, address, email]
     );
 
     return user.rows[0];
@@ -42,4 +42,26 @@ const getOtherUser = async (username) => {
   }
 };
 
-module.exports = { createUser, findByUsername, getOtherUser };
+const getMyInfo = async (username) => {
+  try {
+    const user = await pool.query("SELECT * FROM users WHERE username = $1", [
+      username,
+    ]);
+    return user.rows[0];
+  } catch (error) {
+    throw new Error("Lỗi khi lấy thông tin người dùng");
+  }
+};
+
+const updateUser = async (username, phone, address, email, image) => {
+  try {
+    const user = await pool.query(
+      "UPDATE users SET phone = $1, address = $2, email = $3, image = $4 WHERE username = $5 RETURNING *",
+      [phone, address, email, image, username]
+    );
+    return user.rows[0];
+  } catch (error) {
+    throw new Error("Lỗi khi cập nhật thông tin người dùng");
+  }
+}
+module.exports = { createUser, findByUsername, getOtherUser, getMyInfo, updateUser};

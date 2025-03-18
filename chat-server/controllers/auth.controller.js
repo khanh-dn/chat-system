@@ -5,7 +5,7 @@ const { createUser, findByUsername } = require("../models/user.model");
 
 const register = async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, password, phone, address, email } = req.body;
 
     if (!username || !password) {
       return res.status(400).json({ error: "Vui lòng nhập đầy đủ thông tin" });
@@ -15,7 +15,7 @@ const register = async (req, res) => {
       return res.status(400).json({ error: "Tên đăng nhập đã tồn tại" });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = await createUser(username, hashedPassword);
+    const user = await createUser(username, hashedPassword, phone, address, email);
 
     if (user.error) {
       return res.status(400).json({ error: user.error });
@@ -45,7 +45,7 @@ const login = async (req, res) => {
     const accessToken = jwt.sign(
       { id: user.id, username: user.username },
       process.env.ACCESS_KEY,
-      { expiresIn: "15m" }
+      { expiresIn: "1d" }
     );
 
     const refreshToken = jwt.sign(
