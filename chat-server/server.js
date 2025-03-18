@@ -9,6 +9,7 @@ var pool = require("./db");
 const authRouter = require("./routers/auth");
 const userRouter = require("./routers/user");
 const messageRouter = require("./routers/message")
+const notificationsRouter = require("./routers/notifications");
 const path = require("path");
 
 const PORT = process.env.PORT;
@@ -32,6 +33,8 @@ app.use("/auth", authRouter);
 app.use("/users", userRouter);
 
 app.use("/messages", messageRouter);
+
+app.use("/notifications", notificationsRouter);
 
 io.on("connection", (socket) => {
   socket.on("sendMessage", async ({ sender, receiver, message }) => {
