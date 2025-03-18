@@ -1,7 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
-import axios from "axios";
 import Link from "next/link";
 import api from "../utils/axiosInstance";
 
@@ -66,6 +65,7 @@ export default function Chat({ user }) {
     localStorage.removeItem("accessToken");
     window.location.href = "/";
   };
+
   const sendMessage = () => {
     if (newMessage.trim() === "") return;
 
@@ -75,74 +75,92 @@ export default function Chat({ user }) {
   };
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between" }}>
-        <h1>Chat với {receiver}</h1>
-        <Link href="/profile">My profile: {user}</Link>
-      </div>
-      <select value={receiver} onChange={(e) => setReceiver(e.target.value)}>
-        <option value="">Chọn người nhận</option>
-        {Array.isArray(users) &&
-          users.map((u) => (
-            <option key={u.id} value={u.username}>
-              {u.username}
-            </option>
-          ))}
-      </select>
-
-      {receiver ? (
-        <div>
-          <h2>Tin nhắn</h2>
-          <div
-            style={{
-              height: "300px",
-              overflowY: "scroll",
-              border: "1px solid #ccc",
-              padding: "10px",
-            }}
-          >
-            {messages.length > 0 ? (
-              messages.map((msg, index) => (
-                <div
-                  key={index}
-                  style={{
-                    textAlign: msg.sender === user ? "right" : "left",
-                    marginBottom: "10px",
-                  }}
-                >
-                  <strong>{msg.sender}:</strong> {msg.message}
-                </div>
-              ))
-            ) : (
-              <p>Chưa có tin nhắn nào.</p>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Nhập tin nhắn..."
-            style={{ width: "80%", padding: "8px" }}
-          />
-          <button onClick={sendMessage}>Gửi</button>
+    <div className="flex flex-col items-center min-h-screen bg-gray-100 p-4">
+      <div className="bg-white shadow-lg rounded-lg p-6 w-full max-w-md">
+        {/* Header */}
+        <div className="flex justify-between items-center border-b pb-3 mb-4">
+          <h1 className="text-lg font-semibold">Chat App</h1>
+          <Link href="/profile" className="text-blue-500 hover:underline">
+            {user}
+          </Link>
         </div>
-      ) : (
-        <p>Hãy chọn một người để chat!</p>
-      )}
 
-      <br></br>
-      <button
-        onClick={handleLogout}
-        style={{
-          padding: "5px 10px",
-          color: "white",
-          border: "none",
-          cursor: "pointer",
-        }}
-      >
-        Đăng xuất
-      </button>
+        {/* Danh sách người nhận */}
+        <select
+          value={receiver}
+          onChange={(e) => setReceiver(e.target.value)}
+          className="border p-2 rounded w-full mb-4 focus:outline-none focus:ring focus:ring-blue-300"
+        >
+          <option value="">Chọn người nhận</option>
+          {Array.isArray(users) &&
+            users.map((u) => (
+              <option key={u.id} value={u.username}>
+                {u.username}
+              </option>
+            ))}
+        </select>
+
+        {/* Khung Chat */}
+        {receiver ? (
+          <>
+            <h2 className="text-center text-lg font-semibold mb-2">
+              Chat với {receiver}
+            </h2>
+            <div className="h-64 overflow-y-auto border rounded-md p-3 bg-gray-50">
+              {messages.length > 0 ? (
+                messages.map((msg, index) => (
+                  <div
+                    key={index}
+                    className={`flex ${
+                      msg.sender === user ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div
+                      className={`px-4 py-2 rounded-lg shadow ${
+                        msg.sender === user
+                          ? "bg-blue-500 text-white"
+                          : "bg-gray-200"
+                      }`}
+                    >
+                      <strong></strong> {msg.message}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="text-center text-gray-500">Chưa có tin nhắn nào.</p>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Nhập tin nhắn */}
+            <div className="flex mt-3">
+              <input
+                type="text"
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Nhập tin nhắn..."
+                className="border p-2 w-full rounded-l focus:outline-none focus:ring focus:ring-blue-300"
+              />
+              <button
+                onClick={sendMessage}
+                className="bg-blue-500 text-white px-4 py-2 rounded-r hover:bg-blue-600 transition"
+              >
+                Gửi
+              </button>
+            </div>
+          </>
+        ) : (
+          <p className="text-center text-gray-500">Hãy chọn một người để chat!</p>
+        )}
+
+        {/* Nút đăng xuất */}
+        <button
+          onClick={handleLogout}
+          className="mt-4 bg-red-500 text-white px-4 py-2 w-full rounded hover:bg-red-600 transition"
+        >
+          Đăng xuất
+        </button>
+      </div>
     </div>
   );
 }

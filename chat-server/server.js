@@ -9,6 +9,7 @@ var pool = require("./db");
 const authRouter = require("./routers/auth");
 const userRouter = require("./routers/user");
 const messageRouter = require("./routers/message")
+const path = require("path");
 
 const PORT = process.env.PORT;
 const app = express();
@@ -18,6 +19,8 @@ const io = new Server(httpServer, { cors: { origin: "*" } });
 app.use(cors());
 app.use(express.json());
 app.use(cookieParser());
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
 
 // const client = redis.createClient(6379);
 // client.on("connect", () => {

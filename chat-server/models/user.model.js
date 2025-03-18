@@ -4,7 +4,7 @@ const createUser = async (username, password, phone, address, email) => {
   try {
     const existingUser = await findByUsername(username);
 
-    if (existingUser > 0) {
+    if (existingUser) {
       return { error: "Tên đăng nhập đã tồn tại" };
     }
 
@@ -55,13 +55,21 @@ const getMyInfo = async (username) => {
 
 const updateUser = async (username, phone, address, email, image) => {
   try {
-    const user = await pool.query(
-      "UPDATE users SET phone = $1, address = $2, email = $3, image = $4 WHERE username = $5 RETURNING *",
-      [phone, address, email, image, username]
-    );
+    let query = "UPDATE users SET phone = $1, address = $2, email = $3";
+    let values = [phone, address, email];
+
+    if (image) {
+      query += ", image = $4 WHERE username = $5 RETURNING *";
+      values.push(image, username);
+    } else {
+      query += " WHERE username = $4 RETURNING *";
+      values.push(username);
+    }
+
+    const user = await pool.query(query, values);
     return user.rows[0];
   } catch (error) {
     throw new Error("Lỗi khi cập nhật thông tin người dùng");
   }
-}
+};
 module.exports = { createUser, findByUsername, getOtherUser, getMyInfo, updateUser};
