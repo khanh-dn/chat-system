@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import io from "socket.io-client";
 import Link from "next/link";
 import api from "../utils/axiosInstance";
+import Image from "next/image";
 
 const socket = io("http://localhost:3001");
 
@@ -17,7 +18,7 @@ export default function Chat({ user }) {
 
   useEffect(() => {
     if (!user) return;
-
+    socket.emit("registerUser", user);
     const fetchUsers = async () => {
       try {
         const res = await api.get(`/users?username=${user}`);
@@ -37,7 +38,7 @@ export default function Chat({ user }) {
         console.error("Error updating users:", err);
       }
     });
-  
+
     return () => {
       socket.off("updateUserStatus");
     };
@@ -108,7 +109,6 @@ export default function Chat({ user }) {
   const handleLogout = async () => {
     try {
       await api.post(`/auth/logout?username=${user}`);
-      
     } catch (err) {
       console.error(err);
     }
@@ -145,12 +145,34 @@ export default function Chat({ user }) {
                 }`}
                 onClick={() => setReceiver(u.username)}
               >
-                <span
-                  className={`w-3 h-3 rounded-full ${
-                    u.status === "online" ? "bg-green-500" : "bg-gray-400"
-                  }`}
-                ></span>
-                {u.username}
+                <div className="flex items-center gap-x-3 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+                  {/* Avatar */}
+                  <div className="w-12 h-12 rounded-full overflow-hidden">
+                    <Image
+                      width={48}
+                      height={48}
+                      src={
+                        u.image
+                          ? `http://localhost:3001${u.image}`
+                          : "/image/avatar-default.jpg"
+                      }
+                      alt="Avatar"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+
+                  {/* Tên người dùng */}
+                  <span className="text-sm font-medium text-gray-900">
+                    {u.username}
+                  </span>
+
+                  {/* Chấm trạng thái (online/offline) */}
+                  <span
+                    className={`w-3 h-3 rounded-full ${
+                      u.status === "online" ? "bg-green-500" : "bg-gray-400"
+                    }`}
+                  ></span>
+                </div>
               </li>
             ))}
           </ul>
