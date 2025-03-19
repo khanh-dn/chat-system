@@ -12,11 +12,10 @@ export default function Notifications() {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       setUsername(storedUser);
-    }
+    } 
   }, []);
 
   useEffect(() => {
-    const username = localStorage.getItem("user");
     const fetchNotifications = async () => {
       try {
         const response = await fetch(
@@ -30,14 +29,13 @@ export default function Notifications() {
     };
     fetchNotifications();
     socket.on("newNotification", (notification) => {
-        console.log("📩 Nhận thông báo mới:", notification);
         setNotifications((prev) => [notification, ...prev]);
       });
   
       return () => {
         socket.off("newNotification");
       };
-  }, [notifications]);
+  }, [notifications, username]);
 
   return (
     <div>

@@ -31,6 +31,7 @@ app.use("/notifications", notificationsRouter);
 const users = {};
 
 io.on("connection", (socket) => {
+
   // Khi user đăng nhập, lưu socket ID của họ
   socket.on("registerUser", (username) => {
     users[username] = socket.id;
@@ -69,16 +70,8 @@ io.on("connection", (socket) => {
       console.error("Error sending notification:", error);
     }
   });
-
-  socket.on("disconnect", () => {
-    const disconnectedUser = Object.keys(users).find((key) => users[key] === socket.id);
-    if (disconnectedUser) {
-      delete users[disconnectedUser];
-      console.log(`⚠️ User ${disconnectedUser} đã ngắt kết nối.`);
-    }
-  });
 });
 
 httpServer.listen(PORT, () => {
-  console.log("🚀 Server is running on port " + PORT);
+  console.log("Server is running on port " + PORT);
 });

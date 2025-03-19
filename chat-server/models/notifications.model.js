@@ -3,7 +3,7 @@ const pool = require("../db");
 const getNotifications = async (username) => {
   try {
     const notifications = await pool.query(
-      "SELECT * FROM notifications WHERE username = $1 ORDER BY created_at DESC",
+      "SELECT * FROM notifications WHERE username = $1 ORDER BY created_at DESC limit 10",
       [username]
     );
     return notifications.rows;

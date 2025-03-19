@@ -1,15 +1,8 @@
 const {
   getNotifications,
-  createNewNotification,
   markReadNotification,
   deleteNotification,
 } = require("../models/notifications.model");
-const express = require("express");
-const app = express();
-const { createServer } = require("http");
-const { Server } = require("socket.io");
-const httpServer = createServer(app);
-const io = new Server(httpServer, { cors: { origin: "*" } });
 
 const getNotificationsController = async (req, res) => {
   const { username } = req.params;
@@ -20,28 +13,6 @@ const getNotificationsController = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Lỗi khi lấy thông báo" });
-  }
-};
-
-const createNotificationController = async (req, res) => {
-  const { username, type, content } = req.body;
-  try {
-    const newNotification = await createNewNotification(
-      username,
-      type,
-      content
-    );
-    io.on("connection", (socket) => {
-      io.emit("newNotification", newNotification);
-    });
-    console.log(
-      "🔴 Server đang gửi sự kiện newNotification với nội dung:",
-      newNotification
-    );
-    res.json({ notification: newNotification });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Lỗi khi tạo thông báo" });
   }
 };
 
@@ -69,7 +40,6 @@ const deleteNotificationController = async (req, res) => {
 
 module.exports = {
   getNotificationsController,
-  createNotificationController,
   markReadNotificationController,
   deleteNotificationController,
 };
