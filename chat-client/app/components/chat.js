@@ -16,8 +16,9 @@ export default function Chat({ user }) {
   const chatEndRef = useRef(null);
 
   useEffect(() => {
+    if (!user) return;
+
     const fetchUsers = async () => {
-      if (!user) return;
       try {
         const res = await api.get(`/users?username=${user}`);
         setUsers(res.data.users);
@@ -26,6 +27,20 @@ export default function Chat({ user }) {
       }
     };
     fetchUsers();
+
+    socket.on("updateUserStatus", async (data) => {
+      console.log("Received updateUserStatus:", data);
+      try {
+        const res = await api.get(`/users?username=${user}`);
+        setUsers(res.data.users);
+      } catch (err) {
+        console.error("Error updating users:", err);
+      }
+    });
+  
+    return () => {
+      socket.off("updateUserStatus");
+    };
   }, [user]);
 
   useEffect(() => {
@@ -92,7 +107,8 @@ export default function Chat({ user }) {
 
   const handleLogout = async () => {
     try {
-      await api.post("/auth/logout");
+      await api.post(`/auth/logout?username=${user}`);
+      
     } catch (err) {
       console.error(err);
     }
@@ -105,9 +121,7 @@ export default function Chat({ user }) {
     try {
       await api.put(`/notifications/${id}/read`);
       setNotifications((prev) =>
-        prev.map((noti) =>
-          noti.id === id ? { ...noti, is_read: true } : noti
-        )
+        prev.map((noti) => (noti.id === id ? { ...noti, is_read: true } : noti))
       );
     } catch (err) {
       console.error(err);
@@ -124,13 +138,18 @@ export default function Chat({ user }) {
             {users.map((u) => (
               <li
                 key={u.id}
-                className={`p-2 rounded cursor-pointer ${
+                className={`p-2 rounded cursor-pointer flex items-center gap-2 ${
                   receiver === u.username
                     ? "bg-blue-500 text-white"
                     : "hover:bg-gray-300"
                 }`}
                 onClick={() => setReceiver(u.username)}
               >
+                <span
+                  className={`w-3 h-3 rounded-full ${
+                    u.status === "online" ? "bg-green-500" : "bg-gray-400"
+                  }`}
+                ></span>
                 {u.username}
               </li>
             ))}

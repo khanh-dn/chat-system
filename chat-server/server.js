@@ -16,6 +16,8 @@ const PORT = process.env.PORT;
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: "*" } });
+const redisClient = redis.createClient();
+redisClient.connect();
 
 app.use(cors());
 app.use(express.json());
@@ -28,14 +30,28 @@ app.use("/messages", messageRouter);
 app.use("/notifications", notificationsRouter);
 
 // Biến lưu user socket ID
-const users = {};
+const userOnline = new Map();
 
 io.on("connection", (socket) => {
 
-  // Khi user đăng nhập, lưu socket ID của họ
-  socket.on("registerUser", (username) => {
-    users[username] = socket.id;
-    console.log(`✅ ${username} đã kết nối với socket ID: ${socket.id}`);
+  socket.on("disconnect", async () => {
+    const username = [...userOnline.entries()].find(
+      ([, id]) => id === socket.id
+    )?.[0];
+
+    if (username) {
+      userOnline.delete(username);
+      await redisClient.del(username, "online");
+
+      io.emit("updateUserStatus", { username, status: "offline" });
+    }
+  });
+
+  socket.on("registerUser", async (username) => {
+    userOnline.set(username, socket.id);
+    await redisClient.set(username, "online");
+  
+    io.emit("updateUserStatus", { username, status: "online" });
   });
 
   socket.on("sendMessage", async ({ sender, receiver, message }) => {
@@ -60,8 +76,8 @@ io.on("connection", (socket) => {
       );
       const notification = result.rows[0];
 
-      if (users[username]) {
-        io.to(users[username]).emit("newNotification", notification);
+      if (userOnline[username]) {
+        io.to(userOnline[username]).emit("newNotification", notification);
         console.log(`📩 Gửi thông báo real-time cho user ${username}`);
       } else {
         console.log(`⚠️ User ${username} không online, không thể gửi real-time.`);

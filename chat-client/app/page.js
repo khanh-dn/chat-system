@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import Chat from "./components/chat";
 import axios from "axios";
 import { useRouter } from "next/navigation";
+import io from "socket.io-client";
+
+const socket = io("http://localhost:3001");
+
 
 export default function Home() {
   const [user, setUser] = useState(null);
@@ -32,7 +36,7 @@ export default function Home() {
 
       localStorage.setItem("user", res.data.user.username);
       localStorage.setItem("accessToken", res.data.accessToken);
-
+      socket.emit("registerUser", res.data.user.username);
       setUser(res.data.user.username);
     } catch (err) {
       setError("Đăng nhập thất bại! Kiểm tra lại tài khoản và mật khẩu.");
