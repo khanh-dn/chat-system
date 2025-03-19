@@ -36,7 +36,7 @@ export default function Home() {
 
       localStorage.setItem("user", res.data.user.username);
       localStorage.setItem("accessToken", res.data.accessToken);
-      socket.emit("registerUser", res.data.user.username);
+      socket.emit("online", res.data.user.username);
       setUser(res.data.user.username);
     } catch (err) {
       setError("Đăng nhập thất bại! Kiểm tra lại tài khoản và mật khẩu.");

@@ -111,7 +111,7 @@ const refreshToken = async (req, res) => {
 const logout = async (req, res) => {
   try {
     const username = req.query.username;
-    await redisClient.del(username, "online");
+    await redisClient.del(username);
     io.emit("updateUserStatus", { username, status: "offline" });
     res.clearCookie("refreshToken").json({ message: "Đăng xuất thành công!" });
   } catch (error) {

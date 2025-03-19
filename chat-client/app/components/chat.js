@@ -4,6 +4,12 @@ import io from "socket.io-client";
 import Link from "next/link";
 import api from "../utils/axiosInstance";
 import Image from "next/image";
+import { format } from "date-fns";
+import vi from "date-fns/locale/vi";
+
+const formatTime = (timestamp) => {
+  return format(new Date(timestamp), "dd/MM/yyyy HH:mm", { locale: vi });
+};
 
 const socket = io("http://localhost:3001");
 
@@ -18,7 +24,7 @@ export default function Chat({ user }) {
 
   useEffect(() => {
     if (!user) return;
-    socket.emit("registerUser", user);
+    socket.emit("online", user);
     const fetchUsers = async () => {
       try {
         const res = await api.get(`/users?username=${user}`);
@@ -93,8 +99,8 @@ export default function Chat({ user }) {
 
   const sendMessage = () => {
     if (newMessage.trim() === "") return;
+    socket.emit("online", user);
     socket.emit("sendMessage", { sender: user, receiver, message: newMessage });
-    socket.emit("registerUser", user);
     if (user !== receiver) {
       socket.emit("sendNotification", {
         username: receiver,
@@ -187,27 +193,35 @@ export default function Chat({ user }) {
                 className="text-blue-500 hover:underline"
                 onClick={() => setShowNotifications(!showNotifications)}
               >
-                🔔 ({notifications.length})
+                🔔 ({notifications.filter((noti) => !noti.is_read).length})
               </button>
               {showNotifications && (
                 <div className="absolute top-8 right-0 bg-white shadow-lg p-3 rounded-md w-60">
                   <h3 className="text-sm font-semibold border-b pb-2">
                     Thông báo
                   </h3>
+                  {/*Hien thi thong bao */}
                   <ul className="max-h-40 overflow-y-auto">
                     {notifications.length > 0 ? (
                       notifications.map((noti, index) => (
                         <li
                           key={index}
-                          className={`p-2 border-b text-sm cursor-pointer ${
+                          className={`p-3 border-b text-sm rounded-md cursor-pointer transition-all ${
                             noti.is_read
-                              ? "text-gray-500"
-                              : "font-bold text-black"
-                          }`}
+                              ? "text-gray-500 bg-gray-100"
+                              : "font-bold text-black bg-blue-50"
+                          } hover:bg-blue-100`}
                           onClick={() => markNotificationAsRead(noti.id)}
                         >
-                          {noti.content}{" "}
-                          {noti.is_read ? "(Đã đọc)" : "(Chưa đọc)"}
+                          <div className="flex justify-between items-center">
+                            <span>{noti.content}</span>
+                            <span className="text-xs text-gray-500">
+                              {formatTime(noti.created_at)}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {noti.is_read ? "(Đã đọc)" : "(Chưa đọc)"}
+                          </div>
                         </li>
                       ))
                     ) : (

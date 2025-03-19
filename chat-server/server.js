@@ -33,7 +33,6 @@ app.use("/notifications", notificationsRouter);
 const userOnline = new Map();
 
 io.on("connection", (socket) => {
-
   socket.on("disconnect", async () => {
     const username = [...userOnline.entries()].find(
       ([, id]) => id === socket.id
@@ -47,8 +46,9 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("registerUser", async (username) => {
+  socket.on("online", async (username) => {
     userOnline.set(username, socket.id);
+
     await redisClient.set(username, "online");
   
     io.emit("updateUserStatus", { username, status: "online" });
@@ -75,12 +75,9 @@ io.on("connection", (socket) => {
         [username, type, content]
       );
       const notification = result.rows[0];
-
-      if (userOnline[username]) {
-        io.to(userOnline[username]).emit("newNotification", notification);
-        console.log(`📩 Gửi thông báo real-time cho user ${username}`);
-      } else {
-        console.log(`⚠️ User ${username} không online, không thể gửi real-time.`);
+      console.log("user " + userOnline.get(username))
+      if (userOnline.has(username)) {
+        io.to(userOnline.get(username)).emit("newNotification", notification);
       }
     } catch (error) {
       console.error("Error sending notification:", error);
