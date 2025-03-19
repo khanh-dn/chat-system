@@ -18,32 +18,30 @@ export default function Chat({ user }) {
   const [newMessage, setNewMessage] = useState("");
   const [receiver, setReceiver] = useState("");
   const [users, setUsers] = useState([]);
+  const [groups, setGroups] = useState([]);
+  const [activeGroup, setActiveGroup] = useState(null);
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [groupMembers, setGroupMembers] = useState([]);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
     if (!user) return;
     socket.emit("online", user);
-    const fetchUsers = async () => {
+
+    const fetchUsersAndGroups = async () => {
       try {
-        const res = await api.get(`/users?username=${user}`);
-        setUsers(res.data.users);
+        const userRes = await api.get(`/users?username=${user}`);
+        setUsers(userRes.data.users);
+        const groupRes = await api.get(`/groups?username=${user}`);
+        setGroups(groupRes.data);
       } catch (err) {
         console.error(err);
       }
     };
-    fetchUsers();
+    fetchUsersAndGroups();
 
-    socket.on("updateUserStatus", async (data) => {
-      console.log("Received updateUserStatus:", data);
-      try {
-        const res = await api.get(`/users?username=${user}`);
-        setUsers(res.data.users);
-      } catch (err) {
-        console.error("Error updating users:", err);
-      }
-    });
+    socket.on("updateUserStatus", fetchUsersAndGroups);
 
     return () => {
       socket.off("updateUserStatus");
@@ -51,10 +49,13 @@ export default function Chat({ user }) {
   }, [user]);
 
   useEffect(() => {
+    if (!receiver && !activeGroup) return;
     const fetchMessages = async () => {
-      if (!receiver) return;
       try {
-        const res = await api.get(`/messages/${user}/${receiver}`);
+        const endpoint = activeGroup
+          ? `/groups/${activeGroup}/messages`
+          : `/messages/${user}/${receiver}`;
+        const res = await api.get(endpoint);
         setMessages(res.data.messages);
       } catch (err) {
         console.error(err);
@@ -65,13 +66,20 @@ export default function Chat({ user }) {
     fetchMessages();
 
     socket.on("newMessage", (message) => {
-      setMessages((prevMessages) => [...prevMessages, message]);
+      if (message.receiver === receiver || message.sender === receiver) {
+        setMessages((prev) => [...prev, message]);
+      }
     });
-
+    socket.on("newGroupMessage", (message) => {
+      if (message.group_id === activeGroup) {
+        setMessages((prev) => [...prev, message]);
+      }
+    });
     return () => {
       socket.off("newMessage");
+      socket.off("newGroupMessage");
     };
-  }, [user, receiver]);
+  }, [user, receiver, activeGroup]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -97,16 +105,42 @@ export default function Chat({ user }) {
     };
   }, [user]);
 
+  useEffect(() => {
+    if (!activeGroup) return;
+    const fetchGroupMembers = async () => {
+      try {
+        const res = await api.get(`/groups/${activeGroup}/members`);
+        setGroupMembers(res.data.members);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+    fetchGroupMembers();
+  }, [activeGroup]);
+
   const sendMessage = () => {
     if (newMessage.trim() === "") return;
-    socket.emit("online", user);
-    socket.emit("sendMessage", { sender: user, receiver, message: newMessage });
-    if (user !== receiver) {
-      socket.emit("sendNotification", {
-        username: receiver,
-        type: "message",
-        content: `Bạn có một tin nhắn mới từ ${user}`,
+
+    if (activeGroup) {
+      socket.emit("sendGroupMessage", {
+        groupId: activeGroup,
+        sender: user,
+        message: newMessage,
       });
+    } else if (receiver) {
+      socket.emit("sendMessage", {
+        sender: user,
+        receiver,
+        message: newMessage,
+      });
+
+      if (user !== receiver) {
+        socket.emit("sendNotification", {
+          username: receiver,
+          type: "message",
+          content: `Bạn có một tin nhắn mới từ ${user}`,
+        });
+      }
     }
 
     setNewMessage("");
@@ -139,7 +173,26 @@ export default function Chat({ user }) {
       <div className="flex w-full max-w-5xl h-[80vh] bg-white shadow-lg rounded-lg overflow-hidden">
         {/* Danh sách người dùng */}
         <div className="w-1/4 bg-gray-200 p-4 overflow-y-auto">
-          <h2 className="text-lg font-semibold mb-4">Danh sách người dùng</h2>
+          <h2 className="text-lg font-semibold mb-2">Nhóm</h2>
+          <ul>
+            {groups.map((group) => (
+              <li
+                key={group.id}
+                className={`p-2 rounded cursor-pointer ${
+                  activeGroup === group.id
+                    ? "bg-blue-500 text-white"
+                    : "hover:bg-gray-300"
+                }`}
+                onClick={() => {
+                  setActiveGroup(group.id);
+                  setReceiver(null);
+                }}
+              >
+                {group.name}
+              </li>
+            ))}
+          </ul>
+          <h2 className="text-lg font-semibold mb-4">Người dùng</h2>
           <ul>
             {users.map((u) => (
               <li
@@ -149,7 +202,10 @@ export default function Chat({ user }) {
                     ? "bg-blue-500 text-white"
                     : "hover:bg-gray-300"
                 }`}
-                onClick={() => setReceiver(u.username)}
+                onClick={() => {
+                  setReceiver(u.username);
+                  setActiveGroup(null);
+                }}
               >
                 <div className="flex items-center gap-x-3 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
                   {/* Avatar */}
@@ -237,19 +293,29 @@ export default function Chat({ user }) {
               {user}
             </Link>
           </div>
-          {receiver ? (
+          {receiver || activeGroup ? (
             <>
               <h2 className="text-center text-lg font-semibold mb-2">
-                Chat với {receiver}
+                {activeGroup
+                  ? `Nhóm: ${groups.find((g) => g.id === activeGroup)?.name}`
+                  : receiver
+                  ? `Chat với ${receiver}`
+                  : "Chọn một cuộc trò chuyện"}
               </h2>
               <div className="flex-1 overflow-y-auto border rounded-md p-3 bg-gray-50">
                 {messages.map((msg, index) => (
                   <div
                     key={index}
-                    className={`flex ${
-                      msg.sender === user ? "justify-end" : "justify-start"
+                    className={`flex flex-col ${
+                      msg.sender === user ? "items-end" : "items-start"
                     }`}
                   >
+                    {/* Hiển thị tên người gửi nếu là group chat */}
+                    {activeGroup && msg.sender !== user && (
+                      <span className="text-sm font-semibold text-gray-700">
+                        {msg.sender}
+                      </span>
+                    )}
                     <div
                       className={`px-4 py-2 rounded-lg shadow ${
                         msg.sender === user

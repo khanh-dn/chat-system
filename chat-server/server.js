@@ -6,10 +6,13 @@ const { createServer } = require("http");
 const cookieParser = require("cookie-parser");
 const cors = require("cors");
 var pool = require("./db");
+
 const authRouter = require("./routers/auth");
 const userRouter = require("./routers/user");
 const messageRouter = require("./routers/message");
 const notificationsRouter = require("./routers/notifications");
+const groupRouter = require("./routers/group");
+
 const path = require("path");
 
 const PORT = process.env.PORT;
@@ -28,6 +31,7 @@ app.use("/auth", authRouter);
 app.use("/users", userRouter);
 app.use("/messages", messageRouter);
 app.use("/notifications", notificationsRouter);
+app.use("/groups", groupRouter);
 
 // Biến lưu user socket ID
 const userOnline = new Map();
@@ -50,7 +54,7 @@ io.on("connection", (socket) => {
     userOnline.set(username, socket.id);
 
     await redisClient.set(username, "online");
-  
+
     io.emit("updateUserStatus", { username, status: "online" });
   });
 
@@ -75,12 +79,50 @@ io.on("connection", (socket) => {
         [username, type, content]
       );
       const notification = result.rows[0];
-      console.log("user " + userOnline.get(username))
+      console.log("user " + userOnline.get(username));
       if (userOnline.has(username)) {
         io.to(userOnline.get(username)).emit("newNotification", notification);
       }
     } catch (error) {
       console.error("Error sending notification:", error);
+    }
+  });
+
+  socket.on("sendGroupMessage", async ({ groupId, sender, message }) => {
+    try {
+      // Kiểm tra sender có trong nhóm không
+      const memberCheck = await pool.query(
+        "SELECT * FROM group_members WHERE group_id = $1 AND username = $2",
+        [groupId, sender]
+      );
+
+      if (memberCheck.rows.length === 0) {
+        console.log("User không thuộc nhóm này:", sender);
+        return;
+      }
+
+      const result = await pool.query(
+        "INSERT INTO group_messages (group_id, sender, message) VALUES ($1, $2, $3) RETURNING *",
+        [groupId, sender, message]
+      );
+      const newMessage = result.rows[0];
+
+      // Lấy danh sách thành viên trong nhóm
+      const members = await pool.query(
+        "SELECT username FROM group_members WHERE group_id = $1",
+        [groupId]
+      );
+
+      members.rows.forEach((member) => {
+        if (userOnline.has(member.username)) {
+          io.to(userOnline.get(member.username)).emit(
+            "newGroupMessage",
+            newMessage
+          );
+        }
+      });
+    } catch (error) {
+      console.error("Error sending group message:", error);
     }
   });
 });
