@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import Chat from "./components/chat";
 import axios from "axios";
-import { useRouter } from "next/navigation";
 import io from "socket.io-client";
 
 const socket = io("http://localhost:3001");
@@ -15,7 +14,6 @@ export default function Home() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     const savedUser = localStorage.getItem("user");

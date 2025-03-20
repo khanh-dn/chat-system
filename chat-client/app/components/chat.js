@@ -23,11 +23,23 @@ export default function Chat({ user }) {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [groupMembers, setGroupMembers] = useState([]);
+  const [searchUser, setSearchUser] = useState("");
+  const [currentUsers, setCurrentUsers] = useState([]);
+
   const chatEndRef = useRef(null);
 
   useEffect(() => {
     if (!user) return;
     socket.emit("online", user);
+
+    const fetchCurrentUsers = async () => {
+      try {
+        const currentRes = await api.get(`/users/current?username=${user}`);
+        setCurrentUsers(currentRes.data.currentUsers);
+      } catch (error) {
+        console.error(error);
+      }
+    };
 
     const fetchUsersAndGroups = async () => {
       try {
@@ -39,9 +51,11 @@ export default function Chat({ user }) {
         console.error(err);
       }
     };
+
+    fetchCurrentUsers();
     fetchUsersAndGroups();
 
-    socket.on("updateUserStatus", fetchUsersAndGroups);
+    socket.on("updateUserStatus", fetchCurrentUsers);
 
     return () => {
       socket.off("updateUserStatus");
@@ -148,7 +162,7 @@ export default function Chat({ user }) {
 
   const handleLogout = async () => {
     try {
-      await api.post(`/auth/logout?username=${user}`);
+      await api.post(`/auth/logout?username=${user}`, {});
     } catch (err) {
       console.error(err);
     }
@@ -194,7 +208,7 @@ export default function Chat({ user }) {
           </ul>
           <h2 className="text-lg font-semibold mb-4">Người dùng</h2>
           <ul>
-            {users.map((u) => (
+            {currentUsers.map((u) => (
               <li
                 key={u.id}
                 className={`p-2 rounded cursor-pointer flex items-center gap-2 ${
@@ -256,42 +270,79 @@ export default function Chat({ user }) {
                   <h3 className="text-sm font-semibold border-b pb-2">
                     Thông báo
                   </h3>
-                  {/*Hien thi thong bao */}
-                  <ul className="max-h-40 overflow-y-auto">
-                    {notifications.length > 0 ? (
-                      notifications.map((noti, index) => (
-                        <li
-                          key={index}
-                          className={`p-3 border-b text-sm rounded-md cursor-pointer transition-all ${
-                            noti.is_read
-                              ? "text-gray-500 bg-gray-100"
-                              : "font-bold text-black bg-blue-50"
-                          } hover:bg-blue-100`}
-                          onClick={() => markNotificationAsRead(noti.id)}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span>{noti.content}</span>
-                            <span className="text-xs text-gray-500">
-                              {formatTime(noti.created_at)}
-                            </span>
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            {noti.is_read ? "(Đã đọc)" : "(Chưa đọc)"}
-                          </div>
-                        </li>
-                      ))
-                    ) : (
-                      <p className="text-gray-500 text-sm p-2">
-                        Không có thông báo.
-                      </p>
-                    )}
-                  </ul>
+                  {/* Hiển thị thông báo */}
+                  {showNotifications && (
+                    <div className="absolute top-10 right-0 bg-white shadow-lg p-3 rounded-md w-60 z-20 border">
+                      <h3 className="text-sm font-semibold border-b pb-2">
+                        Thông báo
+                      </h3>
+                      <ul className="max-h-40 overflow-y-auto">
+                        {notifications.length > 0 ? (
+                          notifications.map((noti, index) => (
+                            <li
+                              key={index}
+                              className={`p-3 border-b text-sm rounded-md cursor-pointer transition-all ${
+                                noti.is_read
+                                  ? "text-gray-500 bg-gray-100"
+                                  : "font-bold text-black bg-blue-50"
+                              } hover:bg-blue-100`}
+                              onClick={() => markNotificationAsRead(noti.id)}
+                            >
+                              <div className="flex justify-between items-center">
+                                <span>{noti.content}</span>
+                                <span className="text-xs text-gray-500">
+                                  {formatTime(noti.created_at)}
+                                </span>
+                              </div>
+                              <div className="text-xs text-gray-400">
+                                {noti.is_read ? "(Đã đọc)" : "(Chưa đọc)"}
+                              </div>
+                            </li>
+                          ))
+                        ) : (
+                          <p className="text-gray-500 text-sm p-2">
+                            Không có thông báo.
+                          </p>
+                        )}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
             <Link href="/profile" className="text-blue-500 hover:underline">
               {user}
             </Link>
+          </div>
+          {/* Ô tìm kiếm người dùng */}
+          <div className="relative w-full mt-2">
+            <input
+              type="text"
+              placeholder="Tìm kiếm người dùng..."
+              value={searchUser}
+              onChange={(e) => setSearchUser(e.target.value)}
+              className="w-full p-2 border rounded focus:outline-none focus:ring focus:ring-blue-300"
+            />
+            {searchUser && (
+              <ul className="absolute z-10 w-full bg-white border rounded shadow-md max-h-40 overflow-y-auto mt-1">
+                {users
+                  .filter((u) =>
+                    u.username.toLowerCase().includes(searchUser.toLowerCase())
+                  )
+                  .map((u) => (
+                    <li
+                      key={u.id}
+                      className="p-2 cursor-pointer hover:bg-gray-200"
+                      onClick={() => {
+                        setReceiver(u.username);
+                        setSearchUser("");
+                      }}
+                    >
+                      {u.username}
+                    </li>
+                  ))}
+              </ul>
+            )}
           </div>
           {receiver || activeGroup ? (
             <>

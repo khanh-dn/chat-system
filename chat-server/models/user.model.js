@@ -72,4 +72,30 @@ const updateUser = async (username, phone, address, email, image) => {
     throw new Error("Lỗi khi cập nhật thông tin người dùng");
   }
 };
-module.exports = { createUser, findByUsername, getOtherUser, getMyInfo, updateUser};
+
+const getCurrentUser = async (username) => {
+  try {
+    const users = await pool.query(
+      `SELECT DISTINCT ON (users.id) users.id, users.username, users.image, messages.created_at
+        FROM users
+        JOIN messages
+        ON users.username = messages.sender OR users.username = messages.receiver
+        WHERE (messages.sender = $1 OR messages.receiver = $1) and users.username != $1
+        ORDER BY users.id, messages.created_at DESC`,
+      [username]
+    );
+
+    return users.rows;
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    throw error;
+  }
+};
+module.exports = {
+  createUser,
+  findByUsername,
+  getOtherUser,
+  getMyInfo,
+  updateUser,
+  getCurrentUser
+};

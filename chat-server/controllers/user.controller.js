@@ -1,4 +1,9 @@
-const { getOtherUser, getMyInfo, updateUser } = require("../models/user.model");
+const {
+  getOtherUser,
+  getMyInfo,
+  updateUser,
+  getCurrentUser,
+} = require("../models/user.model");
 
 const multer = require("multer");
 const path = require("path");
@@ -37,6 +42,22 @@ const getUser = async (req, res) => {
   }
 };
 
+const getCurrentUserController = async (req, res) => {
+  try {
+    const username = req.query.username;
+    const currentUsers = await getCurrentUser(username);
+    const usersWithStatus = await Promise.all(
+      currentUsers.map(async (user) => {
+        const status = (await redisClient.get(user.username)) || "offline";
+        return { ...user, status };
+      })
+    );
+    res.json({ currentUsers: usersWithStatus });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
 const getMyProfile = async (req, res) => {
   try {
     const username = req.query.username;
@@ -67,4 +88,11 @@ const updateProfile = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-module.exports = { getUser, getMyProfile, updateProfile, upload };
+
+module.exports = {
+  getUser,
+  getMyProfile,
+  updateProfile,
+  upload,
+  getCurrentUserController,
+};
