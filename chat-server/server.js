@@ -77,7 +77,8 @@ io.on("connection", (socket) => {
       );
       const newMessage = result.rows[0];
 
-      io.emit("newMessage", newMessage);
+      io.to(userOnline.get(receiver)).emit("newMessage", newMessage);
+      io.to(userOnline.get(sender)).emit("newMessage", newMessage);
     } catch (error) {
       console.error("Error sending message:", error);
     }

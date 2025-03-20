@@ -285,7 +285,7 @@ export default function Chat({ user }) {
             {currentUsers.map((u) => (
               <li
                 key={u.id}
-                className={`p-2 rounded cursor-pointer flex items-center gap-2 ${
+                className={`p-2 rounded flex items-center gap-2 ${
                   receiver === u.username
                     ? "bg-blue-500 text-white"
                     : "hover:bg-gray-300"
@@ -295,7 +295,7 @@ export default function Chat({ user }) {
                   setActiveGroup(null);
                 }}
               >
-                <div className="flex items-center gap-x-3 p-2 hover:bg-gray-100 rounded-lg cursor-pointer">
+                <div className="flex items-center gap-x-3 p-2 hover:bg-gray-100 rounded-lg">
                   {/* Avatar */}
                   <div className="w-12 h-12 rounded-full overflow-hidden">
                     <Image
@@ -325,7 +325,7 @@ export default function Chat({ user }) {
                   {/* Nút ba chấm */}
                   <button
                     onClick={handleMenuClick}
-                    className="text-gray-600 hover:text-black"
+                    className="text-gray-600 hover:text-black cursor-pointer"
                   >
                     ⋮
                   </button>
