@@ -6,19 +6,22 @@ import api from "../utils/axiosInstance";
 import Image from "next/image";
 import { format } from "date-fns";
 import vi from "date-fns/locale/vi";
+import { Menu, MenuItem } from "@mui/material";
 
 const formatTime = (timestamp) => {
   return format(new Date(timestamp), "dd/MM/yyyy HH:mm", { locale: vi });
 };
 
 const socket = io("http://localhost:3001", {
-  reconnection: true,       // Bật tự động kết nối lại
-  reconnectionAttempts: 5,  // Số lần thử lại (có thể tăng)
-  reconnectionDelay: 1000,  // Thời gian chờ giữa mỗi lần thử lại (ms)
+  reconnection: true, // Bật tự động kết nối lại
+  reconnectionAttempts: 5, // Số lần thử lại (có thể tăng)
+  reconnectionDelay: 1000, // Thời gian chờ giữa mỗi lần thử lại (ms)
   transports: ["websocket"], // Chỉ dùng WebSocket, tránh lỗi polling
 });
 
 export default function Chat({ user }) {
+  const [anchorEl, setAnchorEl] = useState(null);
+
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const [receiver, setReceiver] = useState("");
@@ -33,13 +36,15 @@ export default function Chat({ user }) {
 
   const chatEndRef = useRef(null);
 
+  const open = Boolean(anchorEl);
+
   useEffect(() => {
     const interval = setInterval(() => {
       if (socket.connected) {
         socket.emit("heartbeat", { user: user });
       }
-    }, 1000*60*10); // Gửi mỗi 10 giây
-  
+    }, 1000 * 60 * 10); // Gửi mỗi 10 giây
+
     return () => clearInterval(interval); // Clear interval khi component bị unmount
   }, [user]);
 
@@ -141,9 +146,7 @@ export default function Chat({ user }) {
   }, [user]);
 
   useEffect(() => {
-
     socket.on("updateUserList", (newUser) => {
-
       if (!newUser) {
         return;
       }
@@ -228,6 +231,31 @@ export default function Chat({ user }) {
     }
   };
 
+  const handleDeleteChat = async () => {
+    if (!receiver) return alert("Hãy chọn một người để xóa cuộc trò chuyện!");
+
+    if (!window.confirm("Bạn có chắc muốn xóa cuộc trò chuyện này?")) return;
+
+    try {
+      await api.delete(`/messages/chats/${user}/${receiver}`);
+      setMessages([]); // Xóa tin nhắn trên UI
+      setReceiver(""); // Đóng cuộc trò chuyện
+      setCurrentUsers((prevUsers) =>
+        prevUsers.filter((user) => user.username !== receiver)
+      );
+    } catch (err) {
+      console.error("Lỗi khi xóa cuộc trò chuyện:", err);
+    }
+  };
+
+  const handleMenuClick = (event) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 p-4">
       <div className="flex w-full max-w-5xl h-[80vh] bg-white shadow-lg rounded-lg overflow-hidden">
@@ -294,6 +322,29 @@ export default function Chat({ user }) {
                       u.status === "online" ? "bg-green-500" : "bg-gray-400"
                     }`}
                   ></span>
+                  {/* Nút ba chấm */}
+                  <button
+                    onClick={handleMenuClick}
+                    className="text-gray-600 hover:text-black"
+                  >
+                    ⋮
+                  </button>
+
+                  {/* Menu ẩn */}
+                  <Menu
+                    anchorEl={anchorEl}
+                    open={open}
+                    onClose={handleMenuClose}
+                  >
+                    <MenuItem
+                      onClick={() => {
+                        handleDeleteChat();
+                        handleMenuClose();
+                      }}
+                    >
+                      Xóa cuộc trò chuyện
+                    </MenuItem>
+                  </Menu>
                 </div>
               </li>
             ))}
@@ -311,6 +362,7 @@ export default function Chat({ user }) {
               >
                 🔔 ({notifications.filter((noti) => !noti.is_read).length})
               </button>
+
               {showNotifications && (
                 <div className="absolute top-8 right-0 bg-white shadow-lg p-3 rounded-md w-60">
                   <h3 className="text-sm font-semibold border-b pb-2">
@@ -399,6 +451,7 @@ export default function Chat({ user }) {
                   ? `Chat với ${receiver}`
                   : "Chọn một cuộc trò chuyện"}
               </h2>
+
               <div className="flex-1 overflow-y-auto border rounded-md p-3 bg-gray-50">
                 {messages.map((msg, index) => (
                   <div
