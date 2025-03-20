@@ -37,6 +37,17 @@ app.use("/groups", groupRouter);
 const userOnline = new Map();
 
 io.on("connection", (socket) => {
+  socket.on("joinUser", (username) => {
+    if (!username) {
+      return;
+    }
+    socket.join(username);
+  });
+
+  socket.on("heartbeat", (data) => {
+    console.log(`❤️ Received heartbeat from ${data.user}`);
+  });
+
   socket.on("disconnect", async () => {
     const username = [...userOnline.entries()].find(
       ([, id]) => id === socket.id
@@ -86,6 +97,16 @@ io.on("connection", (socket) => {
     } catch (error) {
       console.error("Error sending notification:", error);
     }
+  });
+
+  socket.on("sendNewMessage", ({ sender, receiver }) => {
+    if (!receiver || !sender) {
+      return;
+    }
+
+    io.to(receiver).emit("updateUserList", sender);
+
+    io.to(sender).emit("updateUserList", receiver);
   });
 
   socket.on("sendGroupMessage", async ({ groupId, sender, message }) => {

@@ -11,7 +11,12 @@ const formatTime = (timestamp) => {
   return format(new Date(timestamp), "dd/MM/yyyy HH:mm", { locale: vi });
 };
 
-const socket = io("http://localhost:3001");
+const socket = io("http://localhost:3001", {
+  reconnection: true,       // Bật tự động kết nối lại
+  reconnectionAttempts: 5,  // Số lần thử lại (có thể tăng)
+  reconnectionDelay: 1000,  // Thời gian chờ giữa mỗi lần thử lại (ms)
+  transports: ["websocket"], // Chỉ dùng WebSocket, tránh lỗi polling
+});
 
 export default function Chat({ user }) {
   const [messages, setMessages] = useState([]);
@@ -27,6 +32,16 @@ export default function Chat({ user }) {
   const [currentUsers, setCurrentUsers] = useState([]);
 
   const chatEndRef = useRef(null);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (socket.connected) {
+        socket.emit("heartbeat", { user: user });
+      }
+    }, 1000*60*10); // Gửi mỗi 10 giây
+  
+    return () => clearInterval(interval); // Clear interval khi component bị unmount
+  }, [user]);
 
   useEffect(() => {
     if (!user) return;
@@ -120,6 +135,36 @@ export default function Chat({ user }) {
   }, [user]);
 
   useEffect(() => {
+    if (user) {
+      socket.emit("joinUser", user);
+    }
+  }, [user]);
+
+  useEffect(() => {
+
+    socket.on("updateUserList", (newUser) => {
+
+      if (!newUser) {
+        return;
+      }
+
+      setCurrentUsers((prevUsers) => {
+        if (prevUsers.some((u) => u.username === newUser)) {
+          return [...prevUsers]; // Cập nhật state để React render lại
+        }
+        return [
+          ...prevUsers,
+          { id: Date.now(), username: newUser, status: "online" },
+        ];
+      });
+    });
+
+    return () => {
+      socket.off("updateUserList");
+    };
+  }, []);
+
+  useEffect(() => {
     if (!activeGroup) return;
     const fetchGroupMembers = async () => {
       try {
@@ -149,6 +194,7 @@ export default function Chat({ user }) {
       });
 
       if (user !== receiver) {
+        socket.emit("sendNewMessage", { sender: user, receiver });
         socket.emit("sendNotification", {
           username: receiver,
           type: "message",
