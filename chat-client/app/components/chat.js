@@ -49,6 +49,15 @@ export default function Chat({ user }) {
   }, [user]);
 
   useEffect(() => {
+    socket.on("connect", () => {
+      if (user) {
+        socket.emit("online", user);
+      }
+    });
+  }, [user]);
+
+  
+  useEffect(() => {
     if (!user) return;
     socket.emit("online", user);
 
@@ -100,7 +109,7 @@ export default function Chat({ user }) {
     fetchMessages();
 
     socket.on("newMessage", (message) => {
-      if (message.receiver === receiver || message.sender === receiver) {
+      if (message.receiver === user || message.sender === user) {
         setMessages((prev) => [...prev, message]);
       }
     });

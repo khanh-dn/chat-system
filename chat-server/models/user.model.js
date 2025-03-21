@@ -81,6 +81,7 @@ const getCurrentUser = async (username) => {
         JOIN messages
         ON users.username = messages.sender OR users.username = messages.receiver
         WHERE (messages.sender = $1 OR messages.receiver = $1) and users.username != $1
+        AND NOT deleted_by @> to_jsonb($1)::jsonb
         ORDER BY users.id, messages.created_at DESC`,
       [username]
     );

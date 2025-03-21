@@ -1,6 +1,5 @@
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const redis = require("redis");
 
 const express = require("express");
 const { createServer } = require("http");
@@ -9,8 +8,8 @@ const { Server } = require("socket.io");
 const httpServer = createServer(app);
 const io = new Server(httpServer, { cors: { origin: "*" } });
 
-const redisClient = redis.createClient();
-redisClient.connect();
+const ioRedis = require('../utils/redis')
+
 
 
 
@@ -60,7 +59,7 @@ const login = async (req, res) => {
       return res.status(401).json({ message: "Invalid password" });
     }
 
-    await redisClient.set(username, "online");
+    await ioRedis.set(username, "online");
     io.emit("updateUserStatus", { username, status: "online" });
     const accessToken = jwt.sign(
       { id: user.id, username: user.username },
@@ -111,7 +110,7 @@ const refreshToken = async (req, res) => {
 const logout = async (req, res) => {
   try {
     const username = req.query.username;
-    await redisClient.del(username);
+    await ioRedis.del(username);
     io.emit("updateUserStatus", { username, status: "offline" });
     res.clearCookie("refreshToken").json({ message: "Đăng xuất thành công!" });
   } catch (error) {
