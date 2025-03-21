@@ -109,7 +109,11 @@ export default function Chat({ user }) {
     fetchMessages();
 
     socket.on("newMessage", (message) => {
-      if (message.receiver === user || message.sender === user) {
+      if (
+        !message.group_id && // Đảm bảo đây là tin nhắn riêng
+        ((message.receiver === user && message.sender === receiver) ||
+          (message.sender === user && message.receiver === receiver))
+      ) {
         setMessages((prev) => [...prev, message]);
       }
     });

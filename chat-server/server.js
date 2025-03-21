@@ -87,8 +87,11 @@ io.on("connection", (socket) => {
       await ioRedis.ltrim(chatKey1, -50, -1);
       await ioRedis.ltrim(chatKey2, -50, -1);
 
-      io.to(userOnline.get(receiver)).emit("newMessage", newMessage);
-      io.to(userOnline.get(sender)).emit("newMessage", newMessage);
+      if (!newMessage.group_id) {
+        // Đảm bảo chỉ phát sự kiện tin nhắn riêng
+        io.to(userOnline.get(receiver)).emit("newMessage", newMessage);
+        io.to(userOnline.get(sender)).emit("newMessage", newMessage);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
     }
@@ -103,16 +106,18 @@ io.on("connection", (socket) => {
       const notification = result.rows[0];
       let userSocket = userOnline.get(username);
 
-    // Nếu không tìm thấy trong userOnline, kiểm tra lại Redis
-    if (!userSocket) {
-      const isOnline = await ioRedis.get(username);
-      if (isOnline === "online") {
-        // Nếu Redis báo online nhưng userOnline không có, cập nhật lại
-        console.log(`User ${username} online nhưng thiếu socket ID, cập nhật lại.`);
-        userSocket = socket.id;
-        userOnline.set(username, userSocket);
+      // Nếu không tìm thấy trong userOnline, kiểm tra lại Redis
+      if (!userSocket) {
+        const isOnline = await ioRedis.get(username);
+        if (isOnline === "online") {
+          // Nếu Redis báo online nhưng userOnline không có, cập nhật lại
+          console.log(
+            `User ${username} online nhưng thiếu socket ID, cập nhật lại.`
+          );
+          userSocket = socket.id;
+          userOnline.set(username, userSocket);
+        }
       }
-    }
       if (userOnline.has(username)) {
         io.to(userOnline.get(username)).emit("newNotification", notification);
       }

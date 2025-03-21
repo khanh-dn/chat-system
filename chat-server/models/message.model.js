@@ -1,4 +1,5 @@
 const pool = require("../db");
+const ioRedis = require("../utils/redis");
 
 const getMessage = async (sender, receiver) => {
   try {
@@ -16,7 +17,7 @@ const getMessage = async (sender, receiver) => {
   }
 };
 
-const deleteMessage = async (user_id, partner_id) => {
+const deleteMessage = async (sender, receiver) => {
   try {
     // Cập nhật danh sách deleted_by
     await pool.query(
@@ -29,19 +30,50 @@ const deleteMessage = async (user_id, partner_id) => {
       WHERE ((sender = $1 AND receiver = $2) OR (sender = $2 AND receiver = $1))
       AND NOT deleted_by @> to_jsonb($1)::jsonb
       `,
-      [user_id, partner_id]
+      [sender, receiver]
     );
 
     // Kiểm tra nếu cả hai người đều xóa thì xóa hoàn toàn tin nhắn
-    await pool.query(
+    const checkDeleted = await pool.query(
       `
-      DELETE FROM messages
+      SELECT COUNT(*) FROM messages
       WHERE ((sender = $1 AND receiver = $2) OR (sender = $2 AND receiver = $1))
       AND deleted_by @> to_jsonb($1)::jsonb
       AND deleted_by @> to_jsonb($2)::jsonb
       `,
-      [user_id, partner_id]
+      [sender, receiver]
     );
+
+    const chatKey = `chat:${[sender, receiver].sort().join(":")}`;
+
+    if (checkDeleted.rows[0].count > 0) {
+      // Nếu cả hai user đã xóa, xóa hoàn toàn khỏi database và Redis
+      await pool.query(
+        `DELETE FROM messages
+        WHERE ((sender = $1 AND receiver = $2) OR (sender = $2 AND receiver = $1))
+        AND deleted_by @> to_jsonb($1)::jsonb
+        AND deleted_by @> to_jsonb($2)::jsonb`,
+        [sender, receiver]
+      );
+
+      await ioRedis.del(chatKey);
+    } else {
+      // Nếu chỉ một user xóa, cập nhật cache để họ không thấy tin nhắn nữa
+      let cachedMessages = await ioRedis.lrange(chatKey, 0, -1);
+      if (cachedMessages.length > 0) {
+        cachedMessages = cachedMessages
+          .map(JSON.parse)
+          .filter(
+            (msg) => !(msg.deleted_by && msg.deleted_by.includes(sender))
+          );
+
+        await ioRedis.del(chatKey);
+        if (cachedMessages.length > 0) {
+          await ioRedis.rpush(chatKey, ...cachedMessages.map(JSON.stringify));
+          await ioRedis.expire(chatKey, 3600);
+        }
+      }
+    }
   } catch (error) {
     console.error("Lỗi khi xóa tin nhắn:", error);
     throw new Error("Lỗi khi xóa tin nhắn");
