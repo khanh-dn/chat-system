@@ -1,4 +1,4 @@
-const MessageRepository = require('../repositories/message.repository')
+const MessageRepository = require("../repositories/message.repository");
 const ioRedis = require("../utils/redis");
 
 const getAllMessage = async (req, res) => {
@@ -9,12 +9,23 @@ const getAllMessage = async (req, res) => {
     // Lấy tin nhắn từ Redis cache
     let cachedMessages = await ioRedis.lrange(chatKey, 0, -1);
     if (cachedMessages.length > 0) {
-      return res.status(200).json({ messages: cachedMessages.map(JSON.parse) });
+      // Parse và lọc tin nhắn bị xóa bởi sender
+      cachedMessages = cachedMessages
+        .map(JSON.parse)
+        .filter((msg) => !msg.deleted_by || !msg.deleted_by.includes(sender));
+
+      return res.status(200).json({ messages: cachedMessages });
     }
 
     //Neu cache khong co lay trong db
-    const result = await MessageRepository.getMessageBetweenUsers(sender, receiver);
-    const messages = result;
+    const result = await MessageRepository.getMessageBetweenUsers(
+      sender,
+      receiver
+    );
+    const messages = result.map((msg) => ({
+      ...msg,
+      deleted_by: msg.deleted_by || [], // Đảm bảo deleted_by luôn là mảng
+    }));
 
     if (messages.length > 0) {
       // Xóa cache cũ và cập nhật cache mới
@@ -31,7 +42,7 @@ const getAllMessage = async (req, res) => {
 const deleteMessageController = async (req, res) => {
   try {
     const { sender, receiver } = req.params;
-    await MessageRepository.deleteMessageBetweenUsers(sender,receiver)
+    await MessageRepository.deleteMessageBetweenUsers(sender, receiver);
     res.json({ success: true, message: "Chat deleted successfully" });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

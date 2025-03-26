@@ -1,7 +1,7 @@
 const http = require('http');
 const { Server } = require("socket.io");
 const app = require('./app')
-const { setupSocket} = require('../src/sockets/chat.socket')
+const { setupSocket } = require('../src/sockets/chat.socket')
 
 const PORT = process.env.PORT;
 
