@@ -94,6 +94,18 @@ export default function Profile() {
     }
   };
 
+  const handleLogout = async () => {
+    const username = localStorage.getItem("user");
+    try {
+      await api.post(`/auth/logout?username=${username}`, {});
+    } catch (err) {
+      console.error(err);
+    }
+    localStorage.removeItem("user");
+    localStorage.removeItem("accessToken");
+    window.location.href = "/";
+  };
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
       <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md">
@@ -125,9 +137,7 @@ export default function Profile() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm">
-                      
-                    </div>
+                    <div className="w-full h-full bg-gray-200 flex items-center justify-center text-gray-500 text-sm"></div>
                   )}
                 </div>
 
@@ -201,6 +211,12 @@ export default function Profile() {
                 className="px-4 py-2 bg-blue-500 text-white rounded shadow-md hover:bg-blue-600 transition"
               >
                 ✏️ Sửa
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-500 text-white rounded shadow-md hover:bg-blue-600 transition"
+              >
+                Đăng xuất
               </button>
             </div>
           </>

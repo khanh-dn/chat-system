@@ -13,7 +13,7 @@ const ioRedis = require('../utils/redis')
 
 
 
-const { createUser, findByUsername } = require("../models/user.model");
+const { createUser, findByUsername } = require("../repositories/user.repository");
 
 const register = async (req, res) => {
   try {

@@ -6,6 +6,6 @@ const { authenticate } = require("../middlewares/auth.middleware");
 
 router.get("/:sender/:receiver",authenticate ,getAllMessage);
 
-router.delete("/chats/:sender/:receiver", deleteMessageController);
+router.delete("/chats/:sender/:receiver",authenticate ,deleteMessageController);
 
 module.exports = router;

@@ -1,9 +1,9 @@
-const { createGroupChat, getUserGroups } = require("../models/groups.model");
+const { createGroupChat, getUserGroups } = require("../repositories/groups.repository");
 const {
   insertGroupMember,
   getGroupMembers,
-} = require("../models/group_member.model");
-const { getGroupMessages } = require("../models/group_messages");
+} = require("../repositories/group_member.repository");
+const { getGroupMessages } = require("../repositories/group_messages.repository");
 const createGroupChatController = async (req, res) => {
   const { group_name, created_by, members } = req.body;
 

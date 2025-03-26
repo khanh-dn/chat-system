@@ -39,16 +39,6 @@ export default function Chat({ user }) {
   const open = Boolean(anchorEl);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (socket.connected) {
-        socket.emit("heartbeat", { user: user });
-      }
-    }, 1000 * 60 * 10); // Gửi mỗi 10 giây
-
-    return () => clearInterval(interval); // Clear interval khi component bị unmount
-  }, [user]);
-
-  useEffect(() => {
     socket.on("connect", () => {
       if (user) {
         socket.emit("online", user);
@@ -220,17 +210,6 @@ export default function Chat({ user }) {
     }
 
     setNewMessage("");
-  };
-
-  const handleLogout = async () => {
-    try {
-      await api.post(`/auth/logout?username=${user}`, {});
-    } catch (err) {
-      console.error(err);
-    }
-    localStorage.removeItem("user");
-    localStorage.removeItem("accessToken");
-    window.location.href = "/";
   };
 
   const markNotificationAsRead = async (id) => {
@@ -513,12 +492,6 @@ export default function Chat({ user }) {
               Hãy chọn một người để chat!
             </p>
           )}
-          <button
-            onClick={handleLogout}
-            className="mt-4 bg-red-500 text-white px-4 py-2 w-full rounded hover:bg-red-600 transition"
-          >
-            Đăng xuất
-          </button>
         </div>
       </div>
     </div>

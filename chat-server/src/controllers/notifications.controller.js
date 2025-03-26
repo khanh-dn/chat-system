@@ -2,7 +2,7 @@ const {
   getNotifications,
   markReadNotification,
   deleteNotification,
-} = require("../models/notifications.model");
+} = require("../repositories/notifications.repository");
 
 const getNotificationsController = async (req, res) => {
   const { username } = req.params;

@@ -1,4 +1,4 @@
-const { getMessage, deleteMessage } = require("../models/message.model");
+const MessageRepository = require('../repositories/message.repository')
 const ioRedis = require("../utils/redis");
 
 const getAllMessage = async (req, res) => {
@@ -13,7 +13,7 @@ const getAllMessage = async (req, res) => {
     }
 
     //Neu cache khong co lay trong db
-    const result = await getMessage(sender, receiver);
+    const result = await MessageRepository.getMessageBetweenUsers(sender, receiver);
     const messages = result;
 
     if (messages.length > 0) {
@@ -31,7 +31,7 @@ const getAllMessage = async (req, res) => {
 const deleteMessageController = async (req, res) => {
   try {
     const { sender, receiver } = req.params;
-    await deleteMessage(sender, receiver);
+    await MessageRepository.deleteMessageBetweenUsers(sender,receiver)
     res.json({ success: true, message: "Chat deleted successfully" });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

@@ -1,4 +1,4 @@
-const pool = require("../db");
+const pool = require("../config/db");
 
 const createUser = async (username, password, phone, address, email) => {
   try {

@@ -3,7 +3,7 @@ const {
   getMyInfo,
   updateUser,
   getCurrentUser,
-} = require("../models/user.model");
+} = require("../repositories/user.repository");
 
 const multer = require("multer");
 const path = require("path");
